@@ -28,13 +28,14 @@ export async function POST(req: NextRequest) {
     const bytes = Buffer.from(await file.arrayBuffer());
 
     const tempDir = process.env.VERCEL ? "/tmp" : path.join(process.cwd(), "tmp");
+
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    inputPath = path.join(tempDir, `input-${stamp}`);
-    outputPath = path.join(tempDir, `output-${stamp}.wav`);
+    const timestamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    inputPath = path.join(tempDir, `input-${timestamp}`);
+    outputPath = path.join(tempDir, `output-${timestamp}.wav`);
 
     fs.writeFileSync(inputPath, bytes);
 
@@ -61,15 +62,18 @@ export async function POST(req: NextRequest) {
     console.error("PROCESS ERROR:", error);
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Processing failed in production.",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Processing failed in production.",
       },
       { status: 500 }
     );
   } finally {
-    for (const p of [inputPath, outputPath]) {
-      if (p && fs.existsSync(p)) {
+    for (const filePath of [inputPath, outputPath]) {
+      if (filePath && fs.existsSync(filePath)) {
         try {
-          fs.unlinkSync(p);
+          fs.unlinkSync(filePath);
         } catch {}
       }
     }
