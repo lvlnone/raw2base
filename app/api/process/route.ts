@@ -7,7 +7,6 @@ import { buildFilterChain } from "@/lib/ffmpeg";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 
 const ffmpegPath = ffmpegInstaller.path;
-
 const execFileAsync = promisify(execFile);
 
 export async function POST(req: NextRequest) {
@@ -26,7 +25,9 @@ export async function POST(req: NextRequest) {
     const intensity = Number(intensityRaw ?? 0.5);
     const bytes = Buffer.from(await file.arrayBuffer());
 
-    const tempDir = path.join(process.cwd(), "tmp");
+    const tempDir =
+      process.env.VERCEL ? "/tmp" : path.join(process.cwd(), "tmp");
+
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
       outputPath,
     ];
 
-    await execFileAsync("ffmpegPath", ffmpegArgs);
+    await execFileAsync(ffmpegPath, ffmpegArgs);
 
     const outputBuffer = fs.readFileSync(outputPath);
 
@@ -57,9 +58,14 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error(error);
+    console.error("PROCESS ERROR:", error);
     return NextResponse.json(
-      { error: "Processing failed. Make sure FFmpeg is installed and available in PATH." },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Processing failed in production.",
+      },
       { status: 500 }
     );
   } finally {
