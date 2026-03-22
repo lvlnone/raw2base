@@ -3,13 +3,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
-import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
+import ffmpegPath from "ffmpeg-static";
 import { buildFilterChain } from "@/lib/ffmpeg";
 
 export const runtime = "nodejs";
 
 const execFileAsync = promisify(execFile);
-const ffmpegPath = ffmpegInstaller.path;
 
 export async function POST(req: NextRequest) {
   let inputPath: string | null = null;
@@ -22,6 +21,10 @@ export async function POST(req: NextRequest) {
 
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "No valid file uploaded." }, { status: 400 });
+    }
+
+    if (!ffmpegPath) {
+      return NextResponse.json({ error: "FFmpeg binary not available." }, { status: 500 });
     }
 
     const intensity = Number(intensityRaw ?? 0.5);
