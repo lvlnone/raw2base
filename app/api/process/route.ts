@@ -4,6 +4,9 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
 import { buildFilterChain } from "@/lib/ffmpeg";
+import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
+
+const ffmpegPath = ffmpegInstaller.path;
 
 const execFileAsync = promisify(execFile);
 
@@ -43,7 +46,7 @@ export async function POST(req: NextRequest) {
       outputPath,
     ];
 
-    await execFileAsync("ffmpeg", ffmpegArgs);
+    await execFileAsync("ffmpegPath", ffmpegArgs);
 
     const outputBuffer = fs.readFileSync(outputPath);
 
