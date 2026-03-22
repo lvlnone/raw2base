@@ -20,24 +20,37 @@ export async function POST(req: NextRequest) {
     const intensityRaw = formData.get("intensity");
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: "No valid file uploaded." }, { status: 400 });
+      return NextResponse.json(
+        { error: "No valid file uploaded." },
+        { status: 400 }
+      );
     }
 
     if (!ffmpegPath) {
-      return NextResponse.json({ error: "FFmpeg binary not available." }, { status: 500 });
+      return NextResponse.json(
+        { error: "FFmpeg binary not available." },
+        { status: 500 }
+      );
     }
 
     const intensity = Number(intensityRaw ?? 0.5);
+    const safeIntensity = Number.isFinite(intensity) ? intensity : 0.5;
     const bytes = Buffer.from(await file.arrayBuffer());
 
-    const tempDir = process.env.VERCEL ? "/tmp" : path.join(process.cwd(), "tmp");
+    // Vercel writable temp directory
+    const tempDir = "/tmp";
 
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    const timestamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    inputPath = path.join(tempDir, `input-${timestamp}`);
+    const timestamp = `${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}`;
+
+    const originalExt = path.extname(file.name || "").toLowerCase() || ".wav";
+
+    inputPath = path.join(tempDir, `input-${timestamp}${originalExt}`);
     outputPath = path.join(tempDir, `output-${timestamp}.wav`);
 
     fs.writeFileSync(inputPath, bytes);
@@ -47,9 +60,13 @@ export async function POST(req: NextRequest) {
       "-i",
       inputPath,
       "-af",
-      buildFilterChain(Number.isFinite(intensity) ? intensity : 0.5),
+      buildFilterChain(safeIntensity),
       outputPath,
     ];
+
+    console.log("FFMPEG PATH:", ffmpegPath);
+    console.log("INPUT PATH:", inputPath);
+    console.log("OUTPUT PATH:", outputPath);
 
     await execFileAsync(ffmpegPath, ffmpegArgs);
 
@@ -63,6 +80,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("PROCESS ERROR:", error);
+
     return NextResponse.json(
       {
         error:
