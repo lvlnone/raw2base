@@ -3,11 +3,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
-import { buildFilterChain } from "@/lib/ffmpeg";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
+import { buildFilterChain } from "@/lib/ffmpeg";
 
-const ffmpegPath = ffmpegInstaller.path;
+export const runtime = "nodejs";
+
 const execFileAsync = promisify(execFile);
+const ffmpegPath = ffmpegInstaller.path;
 
 export async function POST(req: NextRequest) {
   let inputPath: string | null = null;
@@ -25,16 +27,14 @@ export async function POST(req: NextRequest) {
     const intensity = Number(intensityRaw ?? 0.5);
     const bytes = Buffer.from(await file.arrayBuffer());
 
-    const tempDir =
-      process.env.VERCEL ? "/tmp" : path.join(process.cwd(), "tmp");
-
+    const tempDir = process.env.VERCEL ? "/tmp" : path.join(process.cwd(), "tmp");
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    const timestamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    inputPath = path.join(tempDir, `input-${timestamp}`);
-    outputPath = path.join(tempDir, `output-${timestamp}.wav`);
+    const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    inputPath = path.join(tempDir, `input-${stamp}`);
+    outputPath = path.join(tempDir, `output-${stamp}.wav`);
 
     fs.writeFileSync(inputPath, bytes);
 
@@ -61,18 +61,15 @@ export async function POST(req: NextRequest) {
     console.error("PROCESS ERROR:", error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Processing failed in production.",
+        error: error instanceof Error ? error.message : "Processing failed in production.",
       },
       { status: 500 }
     );
   } finally {
-    for (const filePath of [inputPath, outputPath]) {
-      if (filePath && fs.existsSync(filePath)) {
+    for (const p of [inputPath, outputPath]) {
+      if (p && fs.existsSync(p)) {
         try {
-          fs.unlinkSync(filePath);
+          fs.unlinkSync(p);
         } catch {}
       }
     }
