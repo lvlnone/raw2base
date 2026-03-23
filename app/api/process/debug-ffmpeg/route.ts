@@ -10,6 +10,7 @@ export async function GET() {
   try {
     const result = await execFileAsync("which", ["ffmpeg"]);
     const version = await execFileAsync("ffmpeg", ["-version"]);
+    
     return NextResponse.json({
       which: result.stdout.trim(),
       version: version.stdout.split("\n")[0],
