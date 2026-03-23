@@ -3,12 +3,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
-import ffmpegPath from "ffmpeg-static";
 import { buildFilterChain } from "@/lib/ffmpeg";
 
 export const runtime = "nodejs";
 
 const execFileAsync = promisify(execFile);
+const ffmpegPath = "ffmpeg";
 
 export async function POST(req: NextRequest) {
   let inputPath: string | null = null;
@@ -26,18 +26,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!ffmpegPath) {
-      return NextResponse.json(
-        { error: "FFmpeg binary not available." },
-        { status: 500 }
-      );
-    }
-
     const intensity = Number(intensityRaw ?? 0.5);
     const safeIntensity = Number.isFinite(intensity) ? intensity : 0.5;
     const bytes = Buffer.from(await file.arrayBuffer());
 
-    // Vercel writable temp directory
     const tempDir = "/tmp";
 
     if (!fs.existsSync(tempDir)) {
